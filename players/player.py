@@ -7,13 +7,18 @@ class player():
         self.verbose = verbose
         self.role = role
         self.nodes = 0
+    
     def randomMove(self, state):
-        moves = state.legal_moves
-        numMoves = len(moves)
-        moveNumber = random.randint(0, numMoves-1)
-        for i, move in enumerate(moves):
-            if i == moveNumber:
-                return move
+        return randomMove(state)
+        
+def randomMove(state):
+    moves = state.legal_moves
+    numMoves = len(moves)
+    moveNumber = random.randint(0, numMoves-1)
+    for i, move in enumerate(moves):
+        if i == moveNumber:
+            return move
+    
 
 class randomPlayer(player):
     def getMove(self, state, timeLimit):
@@ -21,6 +26,9 @@ class randomPlayer(player):
 
 class legalPlayer(player):
     def getMove(self, state, timeLimit):
-        moves = state.legal_moves
-        for move in moves:
-            return move
+        return getLegalMove(state)
+
+def getLegalMove(state):
+    moves = state.legal_moves
+    for move in moves:
+        return move

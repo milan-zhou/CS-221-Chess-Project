@@ -19,8 +19,13 @@ class randomPlayer(player):
     def getMove(self, state, timeLimit):
         return self.randomMove(state)
 
+    def getName(self):
+        return "random"
+
 class legalPlayer(player):
     def getMove(self, state, timeLimit):
         moves = state.legal_moves
         for move in moves:
             return move
+    def getName(self):
+        return "legal"

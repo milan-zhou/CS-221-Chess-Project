@@ -1,12 +1,11 @@
 import player
+import sys
 import game
 import random
 import time
 import UCT
 
 class MCTSPlayer(player.player):
-    def __init__(self, verbose=False):
-        self.verbose = verbose
 
     def getMove(self, state, timeLimit):
         self.nodes = 0

@@ -46,7 +46,6 @@ class negamaxPlayer(player.player):
                 return maxMove
             if maxScore == float("inf"):
                 break
-            print(depth, maxMove, maxScore)
                 
             if maxScore > bestScore:
                 bestMove = maxMove

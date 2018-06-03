@@ -1,9 +1,10 @@
-import MCTS
 import sys
-sys.path.append('python-chess')
+sys.path.extend(["../players", "../python-chess", ".."])
+import MCTS
 import chess
 import re
 import time
+import evaluate
 
 def parseEpd(rawLine):
     # 4-field FEN
@@ -26,15 +27,15 @@ def parseEpd(rawLine):
 
     return pos, operations, dict(values)
 
-p1 = MCTS.MCTSPlayer()
+p1 = MCTS.MCTSPlayer(evaluate.mobilityEvaluate, True)
 state = chess.Board()
-g = open("logs/%s_%d.txt" % (p1.getName(), time.time()),"w+")
+g = open("../logs_mobility/%s_%d.txt" % (p1.getName(), time.time()),"w+")
 for i in range(1,15):
     total = 0
     bm = 0 
     t3 = 0
-    with open("STS/STS%d.epd" % i) as f:
-        g.write("STS/STS%d.epd\n" % i)
+    with open("../STS/STS%d.epd" % i) as f:
+        g.write("../STS/STS%d.epd\n" % i)
         nodes = []
         for j, line in enumerate(f.read().splitlines()):
             position, operations, values = parseEpd(line)

@@ -1,10 +1,7 @@
 import sys
-sys.path.append('python-chess')
+sys.path.extend(["../players", "../python-chess", ".."])
 import chess
-import chess.uci
 import player
-import minimax
-import alphabeta
 import time
 import evaluate
 import re
@@ -31,14 +28,14 @@ def parseEpd(rawLine):
 
     return pos, operations, dict(values)
 
-p1 = negamax.negamaxPlayer(evaluate.simpleEvaluate, True)
+p1 = negamax.negamaxPlayer(evaluate.mobilityEvaluate, True)
 
-g = open("logs/%s_%d.txt" % (p1.getName(), time.time()),"w+")
+g = open("../mobility/%s_%d.txt" % (p1.getName(), time.time()),"w+")
 for i in range(1,15):
     total = 0
     bm = 0 
     t3 = 0
-    with open("STS/STS%d.epd" % i) as f:
+    with open("../STS/STS%d.epd" % i) as f:
         g.write("STS/STS%d.epd\n" % i)
         nodes = []
         for j, line in enumerate(f.read().splitlines()):
@@ -57,6 +54,9 @@ for i in range(1,15):
                 bm += 1
             nodes.append(p1.nodes)
             g.write("%d, %d, %s, %s, %s\n" % (j, p1.nodes, values, sanMove, score))
+
+            print(sanMove, operations['c0'], score, p1.nodes)
+            
         g.write(">>(Score, bm, t3, nodes): (%d, %d, %d, %f)\n" % (total, bm, t3, sum(nodes) / float(100)))
 
 

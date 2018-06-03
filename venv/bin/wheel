@@ -1,0 +1,12 @@
+#!/bin/sh
+'''exec' "/Users/milanzhou/Files/Stanford/2017-2018/Spring/CS 221/Project/venv/bin/pypy" "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+
+from wheel.tool import main
+
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

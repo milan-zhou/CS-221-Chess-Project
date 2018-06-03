@@ -1,27 +1,11 @@
 # Adapted from mcts.ai
-# 
-# This is a very simple implementation of the UCT Monte Carlo Tree Search algorithm in Python 2.7.
-# The function UCT(rootstate, itermax, verbose = False) is towards the bottom of the code.
-# It aims to have the clearest and simplest possible code, and for the sake of clarity, the code
-# is orders of magnitude less efficient than it could be made, particularly by using a 
-# state.GetRandomMove() or state.DoRandomRollout() function.
-# 
-# Example GameState classes for Nim, OXO and Othello are included to give some idea of how you
-# can write your own GameState use UCT in your 2-player game. Change the game to be played in 
-# the UCTPlayGame() function at the bottom of the code.
-# 
-# Written by Peter Cowling, Ed Powley, Daniel Whitehouse (University of York, UK) September 2012.
-# 
-# Licence is granted to freely use and distribute for any sensible/legal purpose so long as this comment
-# remains in any distributed code.
-# 
-# For more information about Monte Carlo Tree Search check out our web site at www.mcts.ai
 
 from math import *
 import random
 import time
 import evaluate
 import game
+import math
 
 class Node:
     def __init__(self, move = None, parent = None, state = None):
@@ -56,49 +40,9 @@ class Node:
         self.visits += 1
         self.wins += result
 
-    def __repr__(self):
-        return "[M:" + str(self.move) + " W/V:" + str(self.wins) + "/" + str(self.visits) + " U:" + str(self.untriedMoves) + "]"
-
-    def TreeToString(self, indent):
-        s = self.IndentString(indent) + str(self)
-        for c in self.childNodes:
-             s += c.TreeToString(indent+1)
-        return s
-
-    def IndentString(self,indent):
-        s = "\n"
-        for i in range (1,indent+1):
-            s += "| "
-        return s
-
-    def ChildrenToString(self):
-        s = ""
-        for c in self.childNodes:
-             s += str(c) + "\n"
-        return s
-
-def randomMove(state):
-        moves = state.legal_moves
-        numMoves = len(moves)
-        moveNumber = random.randint(0, numMoves-1)
-        for i, move in enumerate(moves):
-            if i == moveNumber:
-                return move
-def reward(result, role):
-    if result == "1-0":
-        r = 1
-    elif result == "0-1":
-        r = 0
-    else:
-        r = .5
-    if not role:
-        r = -r
-    return r 
-
 def UCT(rootstate, stopTime, verbose = False):
     rootnode = Node(state = rootstate)
     total = 0
-
     
     while (time.time() < stopTime):
         
@@ -116,17 +60,20 @@ def UCT(rootstate, stopTime, verbose = False):
             state.push(m)
             node = node.AddChild(m,state) # add child and descend tree
 
-        # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
-        num = 0
-        while True: # while state is non-terminal
-            result = game.gameOver(state)
-            if (result != "*"):
-                break
-            if (time.time() > stopTime):
-                break
-            state.push(randomMove(state))
-            num += 1
-        r = reward(result, node.playerJustMoved)
+        r = evaluatefn(state, node.playerJustMoved)
+        r = 1/(1+math.exp(-r))
+        # while True: # while state is non-terminal
+        #     result = game.gameOver(state)
+        #     if (result != "*"):
+        #         break
+        #     if num == 40:
+        #         result = None
+        #         break
+        #     if (time.time() > stopTime):
+        #         break
+        #     state.push(randomMove(state))
+        #     num += 1
+        # r = reward(result, node.playerJustMoved) if result else estimateReward(state,score,node.playerJustMoved)
         # Backpropagate
         while node != None: # backpropagate from the expanded node and work back to the root node
             node.Update(r) # state is terminal. Update node with result from POV of node.playerJustMoved
@@ -137,7 +84,3 @@ def UCT(rootstate, stopTime, verbose = False):
     # else: print rootnode.ChildrenToString()
 
     return (sorted(rootnode.childNodes, key = lambda c: c.visits)[-1].move, total) # return the move that was most visited
-                
-                          
-            
-

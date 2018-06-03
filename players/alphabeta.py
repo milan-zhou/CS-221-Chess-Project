@@ -58,12 +58,12 @@ class alphabetaPlayer(player.player):
         stopTime = time.time() + timeLimit
         self.nodes = 0
         depth = self.depth
-        alpha = -100
-        beta = 100
+        alpha = float("-inf")
+        beta = float("inf")
         bestMove = None
         bestScore = float("-inf")
         while (stopTime > time.time()):
-            maxMove, maxScore = self.maxState(state, -100, 100, depth, stopTime)
+            maxMove, maxScore = self.maxState(state, alpha, beta, depth, stopTime)
             if maxScore == 100:
                 return maxMove
             if self.verbose:

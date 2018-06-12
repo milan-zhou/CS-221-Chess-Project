@@ -3,9 +3,9 @@ def gameOver(state):
 
 def reward(state, result, role):
     if result == "1-0":
-        r = 100
+        r = 10000
     elif result == "0-1":
-        r = -100
+        r = -10000
     else:
         r = 0
     if not role:

@@ -12,7 +12,7 @@ from collections import OrderedDict, namedtuple
 MATE_UPPER = float("inf")
 TABLE_SIZE = 1e8
 
-Entry = namedtuple('Entry', 'lower upper best')
+Entry = namedtuple('Entry', 'lower upper')
 class LRUCache:
     '''Store items in the order the keys were last added'''
     def __init__(self, size):
@@ -40,52 +40,52 @@ class mtdExtendedPlayer(player.player):
     def __init__(self, evaluatefn, role):
         self.tp_score = LRUCache(TABLE_SIZE)
         self.tp_move = LRUCache(TABLE_SIZE)
+        
         self.nodes = 0
         self.evaluatefn = evaluatefn
         self.role = role
 
     def evalHelper(self, state, move):
         state.push(move)
-        v = self.evaluatefn(state, self.role)
+        v= self.evaluatefn(state, self.role)
         state.pop()
         return v
 
-    def sortedMoves(self, state, isMax):
-        killer = self.tp_move.get(state)
+    def moves(self, state, zhash, isMax, lm = None):
+        if lm:
+            yield lm
+        killer = self.tp_move.get(zhash)
         if killer:
             yield killer
+        for move in sorted(state.legal_moves, key= lambda x: self.evalHelper(state, x), reverse=isMax):
+            yield move
 
-        for m in sorted(state.legal_moves, key = lambda m: self.evalHelper(state, m), reverse = isMax):
-            yield m
-
-    def alphaBetaWithMemory(self, state, alpha, beta, depth, isMax, stopTime, root=True):
+    def alphaBetaWithMemory(self, state, alpha, beta, depth, isMax, stopTime, root=True, lm=None):
         self.nodes += 1
         
         zhash = zobrist_hash(state)
-        entry = self.tp_score.get((zhash, depth, root), Entry(float("-inf"), float("inf"), None))
-        if entry.lower >= beta and (not root or entry.best):
-            return entry.best, entry.lower
-        if entry.upper <= alpha and entry.best:
-            return entry.best, entry.upper
-    
-        bestMove = None
+        entry = self.tp_score.get((zhash, depth, root), Entry(float("-inf"), float("inf")))
+        if entry.lower >= beta and (not root or self.tp_move.get(zhash)):
+            return (self.tp_move.get(zhash), entry.lower)
+        if entry.upper <= alpha:
+            return (self.tp_move.get(zhash), entry.upper)
+        
+        bestMove = lm
         result = game.gameOver(state)
         if result != "*":
             g = game.reward(state, result, self.role)
         elif depth == 0:
-            g = self.evaluatefn(state, state.turn)
+            g = self.evaluatefn(state, self.role)
 
         elif isMax:
-            g = float("-inf")   
+            g = float("-inf")
             a = alpha 
-            
-
-            for move in self.sortedMoves(state, isMax):
+            for move in self.moves(state, zhash, isMax, lm):
                 if time.time() > stopTime:
                     break
 
                 state.push(move)
-                minMove, score = self.alphaBetaWithMemory(state, a, beta, depth-1, not isMax, stopTime, root = False)
+                _, score = self.alphaBetaWithMemory(state, a, beta, depth-1, not isMax, stopTime, root = False)
                 state.pop()
             
                 if time.time() > stopTime:
@@ -94,52 +94,55 @@ class mtdExtendedPlayer(player.player):
                 if score > g:
                     g = score
                     bestMove = move
-                    self.tp_move[state] = move
-                    
+
                 a = max(a,g)
                     
                 if g >= beta:
+                    self.tp_move[zhash] = move
                     break
         else:
             g = float("inf")
             b = beta
-            for move in self.sortedMoves(state, isMax):
+            for move in self.moves(state, zhash, isMax, lm):
                 if time.time() > stopTime:
                     break
 
                 state.push(move)
-                maxMove, score = self.alphaBetaWithMemory(state, alpha, b, depth - 1, not isMax, stopTime, root = False)
+                _, score = self.alphaBetaWithMemory(state, alpha, b, depth - 1, not isMax, stopTime, root = False)
                 state.pop()
 
                 if time.time() > stopTime:
                     break
                     
-                    
+
                 if score < g:
                     g =  score
-                    self.tp_move[state] = move
+                    bestMove = move
                     
                 b = min(b, g)
 
+                #Killer
                 if g <= alpha:
+                    self.tp_move[zhash] = move
                     break
         
         if time.time() > stopTime:
-            return bestMove, g
+            return (bestMove, g)
 
         if g <= alpha:
-            self.tp_score[(zhash, depth, root)] = Entry(entry.lower, g, bestMove)
+            self.tp_score[(zhash, depth, root)] = Entry(entry.lower, g)
         elif g > alpha and g < beta:
-            self.tp_score[(zhash, depth, root)] = Entry(g, g, bestMove)
+            self.tp_score[(zhash, depth, root)] = Entry(g, g)
         elif g >= beta:
-            self.tp_score[(zhash, depth, root)] = Entry(g, entry.upper, bestMove)
+            self.tp_score[(zhash, depth, root)] = Entry(g, entry.upper)
 
-        return bestMove, g
+        return (bestMove, g)
 
-    def _mtd(self, state, maxDepth, firstGuess, stopTime):
+    def _mtd(self, state, maxDepth, firstGuess, stopTime, lm=None):
         g = firstGuess
         upperBound = float("inf")
         lowerBound = float("-inf")
+        bestMove = lm
         while lowerBound < upperBound:
             if time.time() > stopTime:
                 break
@@ -147,39 +150,30 @@ class mtdExtendedPlayer(player.player):
                 beta = g+1
             else:
                 beta = g
-            move, g = self.alphaBetaWithMemory(state, beta - 1, beta, maxDepth, True, stopTime, root=True)
+            bestMove, g = self.alphaBetaWithMemory(state, beta - 1, beta, maxDepth, True, stopTime, root=True, lm = lm)
 
             if g < beta:
                 upperBound = g
             else:
                 lowerBound = g
-        return move, g
+        return bestMove, g
 
 	#MTDf
     def getMove(self, state, timeLimit):
+        self.tp_score.clear()
+        self.tp_move.clear()
         self.nodes = 0
         start = time.time()
         guess = 0
         depth = 0
         stopTime = start + timeLimit
-        zhash = zobrist_hash(state)
-
-        bestScore = float("-inf")
         bestMove = None
         while (time.time() < stopTime):
-            depth +=2
-            move, guess = self._mtd(state, depth, guess, stopTime)
-            print(depth, move, guess)
-
-            if guess > bestScore:
-                bestMove = move
-                bestScore = guess
-
-
-        self.tp_score.clear()
-        self.tp_move.clear()
+            depth +=1
+            bestMove, guess = self._mtd(state, depth, guess, stopTime, lm=bestMove)
+            print(depth, bestMove, guess)
 
         return bestMove if bestMove else self.randomMove(state)
 
     def getName(self):
-        return "mtd_extended"
+        return "mtdExtended"

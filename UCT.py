@@ -6,6 +6,9 @@ import time
 import evaluate
 import game
 import math
+import sys
+sys.path.append("players")
+import player
 
 class Node:
     def __init__(self, move = None, parent = None, state = None):
@@ -15,7 +18,7 @@ class Node:
         self.wins = 0
         self.visits = 0
         self.untriedMoves = set(state.legal_moves) # future child nodes
-        self.playerJustMoved = not state.turn # the only part of the state that the Node needs later
+        self.playerJustMoved = not state.turn if state else not parent.playerJustMoved # the only part of the state that the Node needs later
         
     def UCTSelectChild(self):
         """ Use the UCB1 formula to select a child node. Often a constant UCTK is applied so we have
@@ -40,7 +43,7 @@ class Node:
         self.visits += 1
         self.wins += result
 
-def UCT(rootstate, stopTime, verbose = False):
+def UCT(rootstate, stopTime, evaluatefn = evaluate.simpleEvaluate):
     rootnode = Node(state = rootstate)
     total = 0
     
@@ -59,26 +62,25 @@ def UCT(rootstate, stopTime, verbose = False):
             m = random.sample(node.untriedMoves,1)[0] 
             state.push(m)
             node = node.AddChild(m,state) # add child and descend tree
-
-        r = evaluatefn(state, node.playerJustMoved)
-        r = 1/(1+math.exp(-r))
-        # while True: # while state is non-terminal
-        #     result = game.gameOver(state)
-        #     if (result != "*"):
-        #         break
-        #     if num == 40:
-        #         result = None
-        #         break
-        #     if (time.time() > stopTime):
-        #         break
-        #     state.push(randomMove(state))
-        #     num += 1
-        # r = reward(result, node.playerJustMoved) if result else estimateReward(state,score,node.playerJustMoved)
+        
+        # r = evaluatefn(state, node.playerJustMoved) /100
+        # rs = [1/(1+math.exp(-r)), 1/(1+math.exp(r))]
+        while True: # while state is non-terminal
+            result = game.gameOver(state)
+            if (result != "*"):
+                break
+            if (time.time() > stopTime):
+                break
+            state.push(player.randomMove(state))
+        r = game.reward(state, result, node.playerJustMoved) / 10000
+        rs = [r, -r]
         # Backpropagate
+        i= 0
         while node != None: # backpropagate from the expanded node and work back to the root node
-            node.Update(r) # state is terminal. Update node with result from POV of node.playerJustMoved
+            node.Update(rs[i]) # state is terminal. Update node with result from POV of node.playerJustMoved
             node = node.parentNode
-        total += 1
+            i = int(not i)
+        total += 1  
     # Output some information about the tree - can be omitted
     # if (verbose): print rootnode.TreeToString(0)
     # else: print rootnode.ChildrenToString()

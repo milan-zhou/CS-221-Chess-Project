@@ -19,7 +19,7 @@ class negamaxPlayer(player.player):
             state.push(move)
             testMove, v = self.negamax(state, -beta, -alpha, depth-1, not role, stopTime)
             state.pop()
-            if v == float("-inf"):
+            if time.time() > stopTime:
                 break
             v = -v
             if v > bestScore:
@@ -39,17 +39,11 @@ class negamaxPlayer(player.player):
         alpha = -100
         beta = 100
         bestMove = None
-        bestScore = float("-inf")
         while (stopTime > time.time()):
-            maxMove, maxScore = self.negamax(state, -100, 100, depth, self.role, stopTime)
-            if maxScore == 100:
-                return maxMove
-            if maxScore == float("inf"):
-                break
-                
-            if maxScore > bestScore:
+            maxMove, maxScore = self.negamax(state, alpha, beta, depth, self.role, stopTime)
+            if maxScore != float("inf"):
                 bestMove = maxMove
-                bestScore = maxScore
+                
             depth += 2
         return bestMove if bestMove else self.randomMove(state)
     

@@ -10,7 +10,7 @@ class MCTSPlayer(player.player):
     def getMove(self, state, timeLimit):
         self.nodes = 0
         stopTime = time.time() + timeLimit
-        bestMove, total = UCT.UCT(state,stopTime)
+        bestMove, total = UCT.UCT(state,stopTime, self.evaluatefn)
         self.nodes = total + 1
         if (self.verbose):
             print(self.nodes)

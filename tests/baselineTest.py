@@ -3,11 +3,10 @@ sys.path.extend(["../players", "../python-chess", ".."])
 import chess
 import player
 import minimax
-import alphabeta
 import time
 import evaluate
 import re
-import negamax
+import baseline
 
 def parseEpd(rawLine):
     # 4-field FEN
@@ -30,10 +29,9 @@ def parseEpd(rawLine):
 
     return pos, operations, dict(values)
 
-p1 = minimax.minimaxPlayer(evaluate.mobilityEvaluate, True)
+p1 = baseline.minimaxPlayer(evaluate.combinedEvaluate, True)
 
-g = open("../logs_mobility/%s_%d.txt" % (p1.getName(), time.time()),"w+")
-
+g = open("../logs_combined/%s_%d.txt" % (p1.getName(), time.time()),"w+")
 for i in range(1,15):
     total = 0
     bm = 0 
@@ -57,6 +55,9 @@ for i in range(1,15):
                 bm += 1
             nodes.append(p1.nodes)
             g.write("%d, %d, %s, %s, %s\n" % (j, p1.nodes, values, sanMove, score))
+
+            print(sanMove, operations['c0'], score, p1.nodes)
+            
         g.write(">>(Score, bm, t3, nodes): (%d, %d, %d, %f)\n" % (total, bm, t3, sum(nodes) / float(100)))
 
 

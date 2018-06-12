@@ -27,9 +27,8 @@ def parseEpd(rawLine):
 
     return pos, operations, dict(values)
 
-p1 = MCTS.MCTSPlayer(evaluate.mobilityEvaluate, True)
-state = chess.Board()
-g = open("../logs_mobility/%s_%d.txt" % (p1.getName(), time.time()),"w+")
+p1 = MCTS.MCTSPlayer(evaluate.simpleEvaluate, True)
+g = open("../logs_value/%s_%d.txt" % (p1.getName(), time.time()),"w+")
 for i in range(1,15):
     total = 0
     bm = 0 
